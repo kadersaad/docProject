@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse Négociateur</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Analyse Négociateur</h1>
+            <nav>
+                <a href="{{ url_for('index') }}" class="back-link">Retour à l'accueil</a>
+            </nav>
+        </header>
+
+        <h2>Analyse Négociateur (Déterminer la meilleure action)</h2>
+        <form method="POST" action="{{ url_for('negociateur_page') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="data_file">Importer le fichier CSV pour l'analyse K-Means (Ex: data_complet.csv) :</label>
+                <input type="file" id="data_file" name="data_file" accept=".csv">
+            </div>
+            <h3>Poids des Décideurs :</h3>
+            <p class="small-text">Entrez un poids entre 0.0 et 1.0 pour chaque décideur.</p>
+            <div class="form-group">
+                <label for="weight_decideur_1">Poids Décideur 1 :</label>
+                <input type="number" id="weight_decideur_1" name="weight_decideur_1" step="0.01" min="0" max="1" value="0.25" required>
+            </div>
+            <div class="form-group">
+                <label for="weight_decideur_2">Poids Décideur 2 :</label>
+                <input type="number" id="weight_decideur_2" name="weight_decideur_2" step="0.01" min="0" max="1" value="0.25" required>
+            </div>
+            <div class="form-group">
+                <label for="weight_decideur_3">Poids Décideur 3 :</label>
+                <input type="number" id="weight_decideur_3" name="weight_decideur_3" step="0.01" min="0" max="1" value="0.25" required>
+            </div>
+            <div class="form-group">
+                <label for="weight_decideur_4">Poids Décideur 4 :</label>
+                <input type="number" id="weight_decideur_4" name="weight_decideur_4" step="0.01" min="0" max="1" value="0.25" required>
+            </div>
+            <button type="submit">Lancer la négociation</button>
+        </form>
+
+        
+        {% if kmeans_results %}
+        <h2>Résultats K-Means et PCA (Pré-analyse)</h2>
+            <div class="kmeans-results">
+                <p>Fichier utilisé pour K-Means : <em>{{ kmeans_data_path_used | default('N/A') }}</em></p>
+                <hr>
+                {% for cluster_detail in kmeans_results.cluster_details %}
+                    <pre>{{ cluster_detail }}</pre>
+                {% endfor %}
+
+                {% for nearest_point_table in kmeans_results.nearest_points %}
+                    <pre>{{ nearest_point_table }}</pre>
+                {% endfor %}
+                <hr>
+                <h3>Plot 2D K-Means Clustering :</h3>
+                {% if kmeans_results.kmeans_plot_url %}
+                    <img src="{{ kmeans_results.kmeans_plot_url }}" alt="K-Means PCA Plot" class="swot-plot">
+                {% else %}
+                    <p>Aucun plot K-Means 2D généré ou trouvé.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

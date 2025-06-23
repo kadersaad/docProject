@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse Décideur</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Analyse Décideur {{ prefill_decideur_id }}</h1>
+            <nav>
+                <a href="{{ url_for('index') }}" class="back-link">Retour à l'accueil</a>
+            </nav>
+        </header>
+
+        <form method="POST" action="{{ url_for('decideur_page') }}">
+            <div class="form-group" hidden>
+                <label for="decideur_id">Choisissez un décideur (1, 2, 3 ou 4) :</label>
+                <input type="number" id="decideur_id" name="decideur_id" min="1" max="4" value="{{ prefill_decideur_id }}" required>
+            </div>
+
+            <h3>Paramètres du Décideur (modifiable) :</h3>
+            <div class="form-group">
+                <label for="poids_input">Poids (séparés par des virgules, ex: 4.96,7.08,17.31,...) :</label>
+                <input type="text" id="poids_input" name="poids_input" value="{{ prefill_poids_str }}" required>
+            </div>
+            <div class="form-group">
+                <label for="seuil_p_input">Seuils de préférence (p) (séparés par des virgules) :</label>
+                <input type="text" id="seuil_p_input" name="seuil_p_input" value="{{ prefill_seuil_p_str }}" required>
+            </div>
+            <div class="form-group">
+                <label for="seuil_q_input">Seuils d'indifférence (q) (séparés par des virgules) :</label>
+                <input type="text" id="seuil_q_input" name="seuil_q_input" value="{{ prefill_seuil_q_str }}" required>
+            </div>
+
+            <div class="form-group" hidden>
+                <label for="new_data_matrix">Entrez la nouvelle Matrice de Données (CSV-like) ou laissez vide pour utiliser 'nearest_points_to_centroids.csv' :</label>
+                <textarea id="new_data_matrix" name="new_data_matrix" rows="10" placeholder="Ex:&#10;1,10,20,5,80,4,0.3,15&#10;2,12,22,6,85,5,0.4,18&#10;3,8,18,4,75,3,0.2,12"></textarea>
+                <small>Format attendu (si rempli): ID_ZONE, NUISANCES, BRUIT, IMPACTS, GEOTECHNIQ, EQUIPEMENT, ACCESSIBIL, CLIMAT. (Pas d'en-tête)</small>
+                <small>Si vide, le fichier 'nearest_points_to_centroids.csv' (généré par l'analyse Négociateur) sera utilisé comme matrice d'entrée pour le calcul SWOT.</small>
+            </div>
+
+            <button type="submit">Lancer l'analyse</button>
+        </form>
+
+        {% if error %}
+            <div class="error-message">
+                <p>Erreur: {{ error }}</p>
+            </div>
+        {% endif %}
+
+        
+        {% if results %}
+            <div class="results">
+                <h2>Résultats de l'Analyse Décideur {{ results.decideur_id }}</h2>
+                <h3>Paramètres Utilisés:</h3>
+                <pre>Poids: {{ results.decideur_params.poids }}</pre>
+                <pre>Seuils de préférence (p): {{ results.decideur_params.seuil_p }}</pre>
+                <pre>Seuils d'indifférence (q): {{ results.decideur_params.seuil_q }}</pre>
+
+                <h3>Matrice de Données traitée:</h3>
+                {% if results.sub_matrix_processed %}
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for key in results.sub_matrix_processed[0].keys() %}
+                                    <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results.sub_matrix_processed %}
+                            <tr>
+                                {% for value in row.values() %}
+                                    <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Aucune matrice de données traitée à afficher (elle a pu être vide ou n'a pas pu être chargée).</p>
+                {% endif %}
+                
+                <h3>Matrice de Préférence (C_P):</h3>
+                {% if results.preference_matrix %}
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for key in results.preference_matrix[0].keys() %} {# Assuming at least one row exists to get keys #}
+                                    <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results.preference_matrix %}
+                            <tr>
+                                {% for value in row.values() %}
+                                    <td>{{ value | round(4) if value is number else value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Aucune matrice de préférence à afficher.</p>
+                {% endif %}
+
+                <h3>Matrice de Discordance (C_D):</h3>
+                {% if results.discordance_matrix %}
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for key in results.discordance_matrix[0].keys() %} {# Assuming at least one row exists to get keys #}
+                                    <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results.discordance_matrix %}
+                            <tr>
+                                {% for value in row.values() %}
+                                    <td>{{ value | round(4) if value is number else value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Aucune matrice de discordance à afficher.</p>
+                {% endif %}
+
+                <h3>Classement PROMETHEE II:</h3>
+                {% if results.ranking_table %}
+                <div class="table-container">
+                    {{ results.ranking_table | safe }}
+                </div>
+                {% else %}
+                    <p>Aucun classement PROMETHEE II généré ou trouvé. Vérifiez les logs pour les erreurs de génération de classement.</p>
+                {% endif %}
+
+                <h3>Décision Finale (PROMETHEE II & SWOT):</h3>
+                {% if results.final_decision_data %} {# Changed from final_decision_table #}
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                {% for key in results.final_decision_data[0].keys() %}
+                                    <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results.final_decision_data %}
+                            <tr {% if row.Decision == 'Refusé' %}style="background-color: #ffcccc;"{% endif %}> {# Apply red background if Decision is 'Refusé' #}
+                                {% for value in row.values() %}
+                                    <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Aucun tableau de décision finale à afficher.</p>
+                {% endif %}
+
+                <h3>Plot SWOT :</h3>
+                {% if results.swot_plot_url %}
+                    <img src="{{ results.swot_plot_url }}" alt="SWOT Plot" class="swot-plot">
+                {% else %}
+                    <p>Aucun plot SWOT généré ou trouvé. Vérifiez les logs pour les erreurs de génération de plot.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+        
+    </div>
+</body>
+</html>

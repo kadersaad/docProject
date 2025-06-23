@@ -1,0 +1,8 @@
+.\venv\Scripts\activate  # Active l'environnement sur Windows
+
+# Install required packages
+pip install Flask pandas numpy scikit-learn matplotlib
+
+
+
+python app.py

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meilleure Action Sélectionnée</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Meilleure Action Sélectionnée</h1>
+            <nav>
+                <a href="{{ url_for('index') }}" class="back-link">Retour à l'accueil</a>
+            </nav>
+        </header>
+
+        {% if error %}
+            <div class="error-message">
+                <p>Erreur: {{ error }}</p>
+                <p>Assurez-vous que tous les fichiers de décision (`decision_final_decideur_X.csv`) sont présents dans le dossier `data/` et que le contenu est correct (notamment la colonne 'Decision' avec la valeur 'Accepté').</p>
+            </div>
+        {% endif %}
+
+        {% if best_action %}
+            <div class="results">
+                <h2>Détails de la Meilleure Action</h2>
+                <p><strong>ID Zone :</strong> {{ best_action.ID_ZONE | default('N/A') }}</p>
+                <p><strong>Rank Pondéré :</strong> {{ best_action.Weighted_Rank | round(2) | default('N/A') }}</p>
+                
+                <h3>Rangs et Décisions par Décideur :</h3>
+                <ul>
+                    {% for key, value in best_action.items() %}
+                        {# Display rank for each decider #}
+                        {% if 'RANK_DECIDEUR_' in key %}
+                            <li>{{ key.replace('RANK_DECIDEUR_', 'Décideur ') }} : {{ value | round(2) }}</li>
+                        {# Display decision for each decider (if available) #}
+                        {% elif 'DECISION_DECIDEUR_' in key %}
+                            <li>{{ key.replace('DECISION_DECIDEUR_', 'Décision Décideur ') }} : {{ value }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                
+                <h3>Poids des Décideurs Appliqués :</h3>
+                <ul>
+                    {% for key, value in best_action.items() %}
+                        {# Display weights for each decider #}
+                        {% if 'Weight_decideur_' in key %}
+                            <li>{{ key.replace('Weight_decideur_', 'Décideur ') }} : {{ value }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                <p>Cette zone est considérée comme la meilleure action en fonction des poids des décideurs.</p>
+                {# Removed the cleanup message as cleanup is commented out in app.py #}
+            </div>
+        {% else %}
+            <div class="info-message">
+                <p>Aucune meilleure action n'a pu être déterminée. Veuillez vérifier que les fichiers nécessaires sont présents, que les poids sont valides, et qu'il y a des décisions 'Accepté' dans les fichiers.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
