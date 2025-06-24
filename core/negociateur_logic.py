@@ -13,7 +13,7 @@ def count_total_accepted(decision_files_paths):
 
     Returns:
         tuple: (total_accepted_count, accepted_decisions_df)
-               total_accepted_count (int): Total number of 'Accepté' decisions.
+               total_accepted_count (int): Total number of 'Accepted' decisions.
                accepted_decisions_df (pd.DataFrame): DataFrame containing unique
                                                      ID_ZONEs that were accepted.
     """
@@ -25,10 +25,9 @@ def count_total_accepted(decision_files_paths):
             df = pd.read_csv(file_path)
             df.columns = df.columns.str.strip().str.replace(' ', '_').str.upper()
 
-            # Check if 'DECISION' column exists and filter for 'Accepté'
-            # IMPORTANT: Changed 'Acceptée' to 'Accepté' to match your provided data
+            # Check if 'DECISION' column exists and filter for 'Accepted'
             if 'DECISION' in df.columns:
-                accepted_df = df[df['DECISION'] == 'Accepté']
+                accepted_df = df[df['DECISION'] == 'Accepted']
                 total_count += len(accepted_df)
                 all_accepted_decisions.append(accepted_df)
             else:
@@ -142,4 +141,5 @@ def compute_best_action(decision_files_paths, accepted_data_df, decision_weights
     for dec_id, weight_value in valid_weights.items():
         best_action[f'Weight_decideur_{dec_id}'] = weight_value
 
+    return best_action.to_dict() # Convert Series to dictionary for easy JSON serialization
     return best_action.to_dict() # Convert Series to dictionary for easy JSON serialization

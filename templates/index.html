@@ -1,38 +1,39 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyse Décideur & Négociateur</title>
+    <title>Decider & Negotiator Analysis</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Système d'Analyse et de Décision</h1>
-        <p>Bienvenue sur l'application qui vous aide à analyser des décisions et à négocier des actions optimales.</p>
+        <h1>Decision Analysis System</h1>
+        <p>Welcome to the application that helps you analyze decisions and negotiate optimal actions.</p>
 
         <nav>
             <ul>
-                <li><a href="{{ url_for('negociateur_page') }}">Analyse Négociateur</a></li>
+                <li{% if nearest_points_exists %} style="background-color: #d4edda; color: #155724;"{% endif %}>
+                    <a href="{{ url_for('negociateur_page') }}">Negotiator Analysis</a>
+                </li>
                 <escape>
                 {% for decider in decider_info %}
-                {# Conditionally add 'decideur-available' class if the file exists #}
                 <li class="{% if decider.file_exists %}decideur-available{% endif %}">
                     <a href="{{ url_for('decideur_page', decideur_id=decider.id) }}">
-                        Décideur {{ decider.id }}
+                        Decider {{ decider.id }}
                         {% if decider.weight != 'N/A' %}
-                            <span class="weight-display">(Poids: {{ decider.weight }})</span>
+                            <span class="weight-display">(Weight: {{ decider.weight }})</span>
                         {% endif %}
                     </a>
                 </li>
                 {% endfor %}
                 </escape>
                 {% if can_compute_best_action %}
-                <li><a href="{{ url_for('best_action_page') }}">Meilleure Action Sélectionnée</a></li>
+                <li><a href="{{ url_for('best_action_page') }}">Best Selected Action</a></li>
                 {% else %}
                 <li class="disabled-link">
-                    <span title="Tous les fichiers de décision ne sont pas présents pour calculer la meilleure action.">
-                        Meilleure Action Sélectionnée (fichiers manquants)
+                    <span title="Not all decision files are present to compute the best action.">
+                        Best Selected Action (missing files)
                     </span>
                 </li>
                 {% endif %}
@@ -40,4 +41,5 @@
         </nav>
     </div>
 </body>
+</html>
 </html>

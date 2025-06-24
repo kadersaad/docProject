@@ -1,52 +1,52 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyse Négociateur</title>
+    <title>Negotiator Analysis</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Analyse Négociateur</h1>
+            <h1>Negotiator Analysis</h1>
             <nav>
-                <a href="{{ url_for('index') }}" class="back-link">Retour à l'accueil</a>
+                <a href="{{ url_for('index') }}" class="back-link">Back to Home</a>
             </nav>
         </header>
 
-        <h2>Analyse Négociateur (Déterminer la meilleure action)</h2>
+        <h2>Negotiator Analysis (Determine the best action)</h2>
         <form method="POST" action="{{ url_for('negociateur_page') }}" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="data_file">Importer le fichier CSV pour l'analyse K-Means (Ex: data_complet.csv) :</label>
+                <label for="data_file">Import CSV file for K-Means analysis (e.g.: data_complet.csv):</label>
                 <input type="file" id="data_file" name="data_file" accept=".csv">
             </div>
-            <h3>Poids des Décideurs :</h3>
-            <p class="small-text">Entrez un poids entre 0.0 et 1.0 pour chaque décideur.</p>
+            <h3>Decider Weights:</h3>
+            <p class="small-text">Enter a weight between 0.0 and 1.0 for each decider.</p>
             <div class="form-group">
-                <label for="weight_decideur_1">Poids Décideur 1 :</label>
+                <label for="weight_decideur_1">Decider 1 Weight:</label>
                 <input type="number" id="weight_decideur_1" name="weight_decideur_1" step="0.01" min="0" max="1" value="0.25" required>
             </div>
             <div class="form-group">
-                <label for="weight_decideur_2">Poids Décideur 2 :</label>
+                <label for="weight_decideur_2">Decider 2 Weight:</label>
                 <input type="number" id="weight_decideur_2" name="weight_decideur_2" step="0.01" min="0" max="1" value="0.25" required>
             </div>
             <div class="form-group">
-                <label for="weight_decideur_3">Poids Décideur 3 :</label>
+                <label for="weight_decideur_3">Decider 3 Weight:</label>
                 <input type="number" id="weight_decideur_3" name="weight_decideur_3" step="0.01" min="0" max="1" value="0.25" required>
             </div>
             <div class="form-group">
-                <label for="weight_decideur_4">Poids Décideur 4 :</label>
+                <label for="weight_decideur_4">Decider 4 Weight:</label>
                 <input type="number" id="weight_decideur_4" name="weight_decideur_4" step="0.01" min="0" max="1" value="0.25" required>
             </div>
-            <button type="submit">Lancer la négociation</button>
+            <button type="submit">Start Negotiation</button>
         </form>
 
         
         {% if kmeans_results %}
-        <h2>Résultats K-Means et PCA (Pré-analyse)</h2>
+        <h2>K-Means and PCA Results (Pre-analysis)</h2>
             <div class="kmeans-results">
-                <p>Fichier utilisé pour K-Means : <em>{{ kmeans_data_path_used | default('N/A') }}</em></p>
+                <p>File used for K-Means: <em>{{ kmeans_data_path_used | default('N/A') }}</em></p>
                 <hr>
                 {% for cluster_detail in kmeans_results.cluster_details %}
                     <pre>{{ cluster_detail }}</pre>
@@ -56,11 +56,11 @@
                     <pre>{{ nearest_point_table }}</pre>
                 {% endfor %}
                 <hr>
-                <h3>Plot 2D K-Means Clustering :</h3>
+                <h3>2D K-Means Clustering Plot:</h3>
                 {% if kmeans_results.kmeans_plot_url %}
                     <img src="{{ kmeans_results.kmeans_plot_url }}" alt="K-Means PCA Plot" class="swot-plot">
                 {% else %}
-                    <p>Aucun plot K-Means 2D généré ou trouvé.</p>
+                    <p>No 2D K-Means plot generated or found.</p>
                 {% endif %}
             </div>
         {% endif %}

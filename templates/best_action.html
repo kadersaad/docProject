@@ -1,63 +1,62 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meilleure Action Sélectionnée</title>
+    <title>Best Selected Action</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Meilleure Action Sélectionnée</h1>
+            <h1>Best Selected Action</h1>
             <nav>
-                <a href="{{ url_for('index') }}" class="back-link">Retour à l'accueil</a>
+                <a href="{{ url_for('index') }}" class="back-link">Back to Home</a>
             </nav>
         </header>
 
         {% if error %}
             <div class="error-message">
-                <p>Erreur: {{ error }}</p>
-                <p>Assurez-vous que tous les fichiers de décision (`decision_final_decideur_X.csv`) sont présents dans le dossier `data/` et que le contenu est correct (notamment la colonne 'Decision' avec la valeur 'Accepté').</p>
+                <p>Error: {{ error }}</p>
+                <p>Make sure all decision files (`decision_final_decideur_X.csv`) are present in the `data/` folder and that the content is correct (especially the 'Decision' column with value 'Accepted').</p>
             </div>
         {% endif %}
 
         {% if best_action %}
             <div class="results">
-                <h2>Détails de la Meilleure Action</h2>
-                <p><strong>ID Zone :</strong> {{ best_action.ID_ZONE | default('N/A') }}</p>
-                <p><strong>Rank Pondéré :</strong> {{ best_action.Weighted_Rank | round(2) | default('N/A') }}</p>
+                <h2>Best Action Details</h2>
+                <p><strong>Zone ID:</strong> {{ best_action.ID_ZONE | default('N/A') }}</p>
+                <p><strong>Weighted Rank:</strong> {{ best_action.Weighted_Rank | round(2) | default('N/A') }}</p>
                 
-                <h3>Rangs et Décisions par Décideur :</h3>
+                <h3>Ranks and Decisions by Decider:</h3>
                 <ul>
                     {% for key, value in best_action.items() %}
-                        {# Display rank for each decider #}
                         {% if 'RANK_DECIDEUR_' in key %}
-                            <li>{{ key.replace('RANK_DECIDEUR_', 'Décideur ') }} : {{ value | round(2) }}</li>
-                        {# Display decision for each decider (if available) #}
+                            <li>{{ key.replace('RANK_DECIDEUR_', 'Decider ') }}: {{ value | round(2) }}</li>
                         {% elif 'DECISION_DECIDEUR_' in key %}
-                            <li>{{ key.replace('DECISION_DECIDEUR_', 'Décision Décideur ') }} : {{ value }}</li>
+                            <li>{{ key.replace('DECISION_DECIDEUR_', 'Decider Decision ') }}: {{ value }}</li>
                         {% endif %}
                     {% endfor %}
                 </ul>
                 
-                <h3>Poids des Décideurs Appliqués :</h3>
+                <h3>Applied Decider Weights:</h3>
                 <ul>
                     {% for key, value in best_action.items() %}
-                        {# Display weights for each decider #}
                         {% if 'Weight_decideur_' in key %}
-                            <li>{{ key.replace('Weight_decideur_', 'Décideur ') }} : {{ value }}</li>
+                            <li>{{ key.replace('Weight_decideur_', 'Decider ') }}: {{ value }}</li>
                         {% endif %}
                     {% endfor %}
                 </ul>
-                <p>Cette zone est considérée comme la meilleure action en fonction des poids des décideurs.</p>
-                {# Removed the cleanup message as cleanup is commented out in app.py #}
+                <p>This zone is considered the best action based on the decider weights.</p>
             </div>
         {% else %}
             <div class="info-message">
-                <p>Aucune meilleure action n'a pu être déterminée. Veuillez vérifier que les fichiers nécessaires sont présents, que les poids sont valides, et qu'il y a des décisions 'Accepté' dans les fichiers.</p>
+                <p>No best action could be determined. Please check that the necessary files are present, the weights are valid, and there are 'Accepted' decisions in the files.</p>
             </div>
         {% endif %}
+    </div>
+</body>
+</html>
     </div>
 </body>
 </html>

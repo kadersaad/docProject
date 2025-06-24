@@ -2,9 +2,9 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 import pandas as pd 
-from werkzeug.utils import secure_filename # Pour une gestion sécurisée des noms de fichiers
-import uuid # Pour des noms de fichiers temporaires uniques
-import json # Pour convertir des listes en chaînes JSON pour l'affichage
+from werkzeug.utils import secure_filename # For secure file name handling
+import uuid # For unique temporary file names
+import json # For converting lists to JSON strings for display
 import csv
 
 from core.decideur_logic import run_decideur_analysis
@@ -13,18 +13,18 @@ from core.clustering_analysis import run_kmeans_analysis
 
 app = Flask(__name__)
 
-# Répertoire de base pour les fichiers de données (supposant que 'data' est un dossier frère de 'app.py')
+# Base directory for data files (assuming 'data' is a sibling folder to 'app.py')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-# Répertoire pour les fichiers téléchargés temporairement
+# Directory for temporarily uploaded files
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'tmp_uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Crée le dossier de téléchargement s'il n'existe pas
+os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Create upload folder if it doesn't exist
 
-# Répertoire pour les images statiques (plots)
+# Directory for static images (plots)
 PLOTS_DIR = os.path.join(os.getcwd(), 'static', 'images')
-os.makedirs(PLOTS_DIR, exist_ok=True) # Crée le dossier d'images s'il n'existe pas
+os.makedirs(PLOTS_DIR, exist_ok=True) # Create images folder if it doesn't exist
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Taille maximale de téléchargement : 16 Mo
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Max upload size: 16 MB
 
 ALLOWED_EXTENSIONS = {'csv'}
 
@@ -52,11 +52,11 @@ def load_decision_weights(file_path):
         return None
 
 def allowed_file(filename):
-    """Vérifie si l'extension du fichier est autorisée."""
+    """Checks if the file extension is allowed."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# PARAMÈTRES PRÉRÉGLÉS DU DÉCIDEUR (extraits de decideur_logic.py pour la gestion du pré-remplissage par app.py)
+# DECIDER PRESET PARAMETERS (extracted from decideur_logic.py for prefill management by app.py)
 DECIDER_PRESET_PARAMS = {
     1: {'poids': [4.96, 7.08, 17.31, 18.93, 18.93, 17.52, 15.27],
         'seuil_p': [0.7, 0.7, 0.6, 100, 8, 1, 0.7],
@@ -72,9 +72,9 @@ DECIDER_PRESET_PARAMS = {
         'seuil_q': [0.25, 0.3, 0.15, 45, 3, 0.25, 0.25]},
 }
 
-# Fonction utilitaire pour le nettoyage des fichiers
+# Utility function for cleaning up files
 def cleanup_decision_files():
-    """Supprime les fichiers de décision et le fichier nearest_points_to_centroids.csv."""
+    """Removes decision files and the nearest_points_to_centroids.csv file."""
     files_to_remove = [os.path.join(DATA_DIR, f"decision_final_decideur_{i}.csv") for i in range(1, 5)]
     files_to_remove.append(os.path.join(DATA_DIR, 'nearest_points_to_centroids.csv'))
     files_to_remove.append(os.path.join(DATA_DIR, 'decision_weights.csv'))
@@ -82,9 +82,9 @@ def cleanup_decision_files():
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
-                print(f"Fichier supprimé : {file_path}")
+                print(f"File removed: {file_path}")
             except OSError as e:
-                print(f"Erreur lors de la suppression du fichier {file_path} : {e}")
+                print(f"Error removing file {file_path}: {e}")
 
 
 @app.route('/')
@@ -120,54 +120,60 @@ def index():
             'weight': decision_weights.get(i, 'N/A') # Get weight, or 'N/A' if not found
         })
 
-    return render_template('index.html', 
-                           decider_info=decider_info, 
-                           can_compute_best_action=can_compute_best_action)
+    # Check if nearest_points_to_centroids.csv exists
+    nearest_points_exists = os.path.exists(os.path.join(DATA_DIR, 'nearest_points_to_centroids.csv'))
+
+    return render_template(
+        'index.html',
+        decider_info=decider_info,
+        can_compute_best_action=can_compute_best_action,
+        nearest_points_exists=nearest_points_exists
+    )
 
 @app.route('/decideur', methods=['GET', 'POST'])
 def decideur_page():
-    """Gère la page d'analyse du Décideur, affichant le formulaire de saisie et les résultats."""
+    """Handles the Decider Analysis page, displaying the input form and results."""
     results = None
     error = None
-    kmeans_file_warning = None # Avertissement spécifique si nearest_points.csv est manquant
+    kmeans_file_warning = None # Specific warning if nearest_points.csv is missing
     
-    # Récupère l'ID du décideur à partir des paramètres de requête pour le pré-remplissage, si disponible
+    # Get the decider ID from query parameters for prefill, if available
     prefill_decideur_id = request.args.get('decideur_id', type=int)
     if prefill_decideur_id not in [1, 2, 3, 4]:
-        prefill_decideur_id = 4 # Valeur par défaut si invalide ou non fournie
+        prefill_decideur_id = 4 # Default value if invalid or not provided
 
-    # Définit les valeurs initiales pour les champs du formulaire (requête GET ou si POST échoue la validation)
-    selected_preset = DECIDER_PRESET_PARAMS.get(prefill_decideur_id, DECIDER_PRESET_PARAMS[4]) # Par défaut, décideur 4
-    # Convertit les listes en chaînes séparées par des virgules pour les champs de saisie HTML
+    # Set initial values for form fields (GET request or if POST fails validation)
+    selected_preset = DECIDER_PRESET_PARAMS.get(prefill_decideur_id, DECIDER_PRESET_PARAMS[4]) # Default to decider 4
+    # Convert lists to comma-separated strings for HTML input fields
     prefill_poids_str = ','.join(map(str, selected_preset['poids']))
     prefill_seuil_p_str = ','.join(map(str, selected_preset['seuil_p']))
     prefill_seuil_q_str = ','.join(map(str, selected_preset['seuil_q']))
 
-    # Vérifie l'existence de nearest_points_to_centroids.csv lors d'une requête GET ou si POST ne fournit pas de nouvelles données
+    # Check for existence of nearest_points_to_centroids.csv on GET or if POST does not provide new data
     nearest_points_path = os.path.join(DATA_DIR, 'nearest_points_to_centroids.csv')
     if not os.path.exists(nearest_points_path):
-        kmeans_file_warning = "Le fichier 'nearest_points_to_centroids.csv' est introuvable. Veuillez exécuter l'analyse K-Means dans la page 'Analyse Négociateur' pour le générer si vous souhaitez utiliser l'option de chargement automatique."
+        kmeans_file_warning = "The file 'nearest_points_to_centroids.csv' is missing. Please run the K-Means analysis on the 'Negotiator Analysis' page to generate it if you want to use the auto-load option."
 
     if request.method == 'POST':
         try:
-            # Récupère l'ID du décideur à partir de l'entrée du formulaire (priorise le formulaire sur le paramètre de requête, met à jour le pré-remplissage pour l'affichage)
+            # Get the decider ID from the form input (prioritize form over query param, update prefill for display)
             decideur_id = int(request.form.get('decideur_id', prefill_decideur_id))
-            prefill_decideur_id = decideur_id # Met à jour pour un rendu potentiel
+            prefill_decideur_id = decideur_id # Update for potential rendering
 
-            # Récupère la nouvelle matrice de données sous forme de chaîne brute (format CSV)
-            new_data_matrix_str = request.form['new_data_matrix'].strip() # Supprime les espaces blancs
+            # Get the new data matrix as a raw string (CSV format)
+            new_data_matrix_str = request.form['new_data_matrix'].strip() # Remove whitespace
 
-            # Récupère les poids et les seuils modifiables par l'utilisateur à partir du formulaire
+            # Get the weights and thresholds editable by the user from the form
             poids_input_str = request.form['poids_input'].strip()
             seuil_p_input_str = request.form['seuil_p_input'].strip()
             seuil_q_input_str = request.form['seuil_q_input'].strip()
 
-            # Met à jour les valeurs de pré-remplissage en fonction de ce que l'utilisateur a saisi (pour le rendu si une erreur se produit)
+            # Update prefill values based on user input (for rendering if an error occurs)
             prefill_poids_str = poids_input_str
             prefill_seuil_p_str = seuil_p_input_str
             prefill_seuil_q_str = seuil_q_input_str
             
-            # Appelle la fonction de logique de base du décideur avec les paramètres fournis par l'utilisateur
+            # Call the core decider logic function with user-provided parameters
             results = run_decideur_analysis(
                 decideur_id, 
                 new_data_matrix_str, 
@@ -176,21 +182,21 @@ def decideur_page():
                 seuil_q_input_str
             )
             
-            # Passe l'URL du plot pour l'affichage en HTML
+            # Pass the plot URL for HTML display
             results['swot_plot_url'] = results['swot_plot_path']
 
-        except FileNotFoundError as e: # Capture spécifiquement si nearest_points.csv est manquant
-            error = f"{e}. Veuillez exécuter l'analyse K-Means dans la page 'Analyse Négociateur' pour générer ce fichier."
-            print(f"Decideur analysis FileNotFoundError: {e}")
+        except FileNotFoundError as e: # Specifically catch if nearest_points.csv is missing
+            error = f"{e}. Please run the K-Means analysis on the 'Negotiator Analysis' page to generate this file."
+            print(f"Decider analysis FileNotFoundError: {e}")
         except ValueError as e:
-            error = f"Erreur de validation: {e}. Assurez-vous que tous les champs sont correctement remplis (nombres entiers, flottants, format CSV)."
-            print(f"Decideur analysis ValueError: {e}")
+            error = f"Validation error: {e}. Make sure all fields are correctly filled (integers, floats, CSV format)."
+            print(f"Decider analysis ValueError: {e}")
         except Exception as e:
-            # Capture toutes les autres erreurs inattendues pendant l'analyse
-            error = f"Une erreur inattendue est survenue lors de l'analyse du décideur : {e}"
-            print(f"Decideur analysis general error: {e}") # Journalise l'erreur pour le débogage
+            # Catch all other unexpected errors during analysis
+            error = f"An unexpected error occurred during decider analysis: {e}"
+            print(f"Decider analysis general error: {e}") # Log error for debugging
 
-    # Rend la page du décideur, en passant les résultats, les erreurs, l'ID de pré-remplissage et les paramètres de pré-remplissage
+    # Render the decider page, passing results, errors, prefill ID and parameters
     return render_template('decideur.html', 
                            results=results, 
                            error=error, 
@@ -202,63 +208,63 @@ def decideur_page():
 
 @app.route('/negociateur', methods=['GET', 'POST'])
 def negociateur_page():
-    """Gère la page d'analyse du Négociateur, affichant les résultats K-Means et de négociation."""
+    """Handles the Negotiator Analysis page, displaying K-Means and negotiation results."""
     best_action_result = None
     kmeans_results = None
     error = None
-    kmeans_data_path_used = None # Pour informer l'utilisateur quel fichier a été utilisé pour K-Means
+    kmeans_data_path_used = None # To inform the user which file was used for K-Means
 
-    # Détermine quel fichier utiliser pour l'analyse K-Means
+    # Determine which file to use for K-Means analysis
     uploaded_file_path = None
     try:
-        # Vérifie si un fichier a été téléchargé via une requête POST
+        # Check if a file was uploaded via POST request
         if request.method == 'POST' and 'data_file' in request.files:
             file = request.files['data_file']
             if file and allowed_file(file.filename):
-                # Crée un nom de fichier unique et sécurisé pour le fichier téléchargé
+                # Create a unique and secure filename for the uploaded file
                 filename = secure_filename(file.filename)
                 unique_filename = str(uuid.uuid4()) + '_' + filename
                 uploaded_file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 file.save(uploaded_file_path)
-                kmeans_data_path_used = uploaded_file_path # K-Means utilisera ce fichier
-                print(f"Fichier téléchargé enregistré sous : {uploaded_file_path}")
+                kmeans_data_path_used = uploaded_file_path # K-Means will use this file
+                print(f"Uploaded file saved as: {uploaded_file_path}")
             elif file and not allowed_file(file.filename):
-                error = "Type de fichier non autorisé. Veuillez télécharger un fichier CSV."
+                error = "File type not allowed. Please upload a CSV file."
         
-        # Si aucun fichier n'est téléchargé ou s'il est invalide, essaie d'utiliser le fichier data_complet.csv par défaut
+        # If no file is uploaded or it's invalid, try to use the default data_complet.csv file
         if not kmeans_data_path_used:
             default_data_path = os.path.join(DATA_DIR, 'data_complet.csv')
             if os.path.exists(default_data_path):
                 kmeans_data_path_used = default_data_path
             else:
-                if not error: # Ne définit l'erreur que si elle n'est pas déjà définie par un problème de téléchargement de fichier
-                    error = "Fichier 'data_complet.csv' non trouvé dans le dossier 'data/'. Veuillez le télécharger ou le placer dans le dossier 'data/'."
+                if not error:
+                    error = "File 'data_complet.csv' not found in the 'data/' folder. Please upload or place it in the 'data/' folder."
 
-        # --- Analyse K-Means (s'exécute si un chemin de données valide est disponible) ---
+        # --- K-Means Analysis (runs if a valid data path is available) ---
         if kmeans_data_path_used:
             kmeans_results = run_kmeans_analysis(kmeans_data_path_used)
-            # Ajoute l'URL du plot aux résultats pour l'affichage HTML
+            # Add plot URL to results for HTML display
             if 'kmeans_plot_path' in kmeans_results:
                 kmeans_results['kmeans_plot_url'] = '/static/images/' + os.path.basename(kmeans_results['kmeans_plot_path'])
         else:
             if not error:
-                error = "Aucun fichier de données n'est disponible pour l'analyse K-Means."
+                error = "No data file is available for K-Means analysis."
 
     except Exception as e:
-        error = f"Erreur lors de l'exécution de l'analyse K-Means : {e}"
-        print(f"Erreur K-Means : {e}") # Journalise l'erreur pour le débogage
+        error = f"Error during K-Means analysis: {e}"
+        print(f"K-Means error: {e}") # Log error for debugging
     finally:
-        # Nettoie le fichier temporaire téléchargé après l'analyse
+        # Clean up the temporary uploaded file after analysis
         if uploaded_file_path and os.path.exists(uploaded_file_path):
             try:
                 os.remove(uploaded_file_path)
-                print(f"Fichier temporaire nettoyé : {uploaded_file_path}")
+                print(f"Temporary file cleaned up: {uploaded_file_path}")
             except OSError as e:
-                print(f"Erreur lors de la suppression du fichier temporaire {uploaded_file_path} : {e}")
+                print(f"Error removing temporary file {uploaded_file_path}: {e}")
 
     if request.method == 'POST':
         try:
-            # Récupère les poids individuels des quatre champs de saisie séparés
+            # Get individual weights from the four separate input fields
             decision_weights = {
                 1: float(request.form.get('weight_decideur_1', 0)),
                 2: float(request.form.get('weight_decideur_2', 0)),
@@ -266,9 +272,9 @@ def negociateur_page():
                 4: float(request.form.get('weight_decideur_4', 0))
             }
 
-            # S'assure qu'au moins un poids est fourni (et non nul)
+            # Ensure at least one weight is provided (and not zero)
             if not any(weight > 0 for weight in decision_weights.values()):
-                raise ValueError("Veuillez fournir au moins un poids non nul pour un décideur pour lancer la négociation.")
+                raise ValueError("Please provide at least one non-zero weight for a decider to start negotiation.")
 
 
             # --- NEW: Save decision_weights to a CSV file ---
@@ -282,24 +288,24 @@ def negociateur_page():
                     writer.writerow({'Decideur': decideur, 'Weight': weight})
             # --- END NEW ---
 
-            # Prépare la liste des chemins des fichiers de décision pour les décideurs pertinents
+            # Prepare the list of decision file paths for the relevant deciders
             files = [os.path.join(DATA_DIR, f"decision_final_decideur_{i}.csv")
                     for i in decision_weights.keys()]
 
-            # Étape 1 : Compte le total des décisions acceptées à partir des fichiers pertinents
+            # Step 1: Count total accepted decisions from the relevant files
             accepted_count, accepted_data = count_total_accepted(files)
 
-            # Étape 2 : Calcule la meilleure action en fonction des données acceptées et des poids
+            # Step 2: Compute the best action based on accepted data and weights
             best_action_result = compute_best_action(files, accepted_data, decision_weights)
 
         except ValueError as e:
-            error = f"Erreur de validation des poids ou des fichiers de décision : {e}"
+            error = f"Weight or decision file validation error: {e}"
         except Exception as e:
-            # Capture et journalise toute autre erreur inattendue pendant la négociation
-            error = f"Une erreur inattendue est survenue lors de l'analyse du négociateur : {e}"
-            print(f"Erreur Négociateur : {e}") # Journalise l'erreur pour le débogage
+            # Catch and log any other unexpected error during negotiation
+            error = f"An unexpected error occurred during negotiator analysis: {e}"
+            print(f"Negotiator error: {e}") # Log error for debugging
 
-    # Rend la page du négociateur, en passant les résultats de la négociation, les résultats K-Means et toutes les erreurs
+    # Render the negotiator page, passing negotiation results, K-Means results, and any errors
     return render_template('negociateur.html', 
                            best_action=best_action_result, 
                            kmeans_results=kmeans_results, 
@@ -309,7 +315,7 @@ def negociateur_page():
 
 @app.route('/best_action')
 def best_action_page():
-    """Gère la page 'Meilleure action sélectionnée', effectue le calcul et le nettoyage."""
+    """Handles the 'Best Selected Action' page, performs calculation and cleanup."""
     best_action_result = None
     error = None
     
@@ -319,7 +325,7 @@ def best_action_page():
         decision_weights = load_decision_weights(weights_file_path)
 
         if decision_weights is None:
-            error = "Les poids des décideurs n'ont pas pu être chargés. Veuillez vérifier le fichier 'decision_weights.csv'."
+            error = "Decider weights could not be loaded. Please check the file 'decision_weights.csv'."
             print("Decision weights could not be loaded, returning early.")
             return render_template('best_action.html', best_action=best_action_result, error=error)
             
@@ -330,8 +336,8 @@ def best_action_page():
         accepted_count, accepted_data = count_total_accepted(files)
         
         if accepted_data.empty:
-            error = "Aucune zone 'Accepté' trouvée dans les fichiers de décision. Veuillez vérifier le contenu des fichiers."
-            print("No 'Accepté' zones found, returning early from best_action_page.")
+            error = "No 'Accepted' zone found in the decision files. Please check the file contents."
+            print("No 'Accepted' zones found, returning early from best_action_page.")
         else:
             best_action_result = compute_best_action(files, accepted_data, decision_weights)
 
@@ -339,44 +345,44 @@ def best_action_page():
             cleanup_decision_files() # You would need to implement this function
 
     except Exception as e:
-        error = f"Une erreur est survenue lors du calcul de la meilleure action : {e}"
-        print(f"Erreur dans best_action_page : {e}")
+        error = f"An error occurred while calculating the best action: {e}"
+        print(f"Error in best_action_page: {e}")
 
     return render_template('best_action.html', best_action=best_action_result, error=error)
 
-# --- Points d'API (inchangés) ---
+# --- API Endpoints (unchanged) ---
 @app.route('/api/decideur', methods=['POST'])
 def api_decideur():
-    """Point d'API pour l'analyse du Décideur (entrée/sortie JSON)."""
+    """API endpoint for Decider Analysis (JSON input/output)."""
     try:
-        data = request.get_json() # Attend une charge utile JSON
+        data = request.get_json() # Expects a JSON payload
         decideur_id = data.get('decideur_id')
-        new_data_matrix_str = data.get('new_data_matrix') # Attend une chaîne de caractères de type CSV
+        new_data_matrix_str = data.get('new_data_matrix') # Expects a CSV-like string
         poids_str = data.get('poids_input')
         seuil_p_str = data.get('seuil_p_input')
         seuil_q_str = data.get('seuil_q_input')
 
         if not decideur_id or not new_data_matrix_str or not poids_str or not seuil_p_str or not seuil_q_str:
-            return jsonify({'error': 'Paramètres requis manquants pour l\'analyse du décideur'}), 400
+            return jsonify({'error': 'Missing required parameters for decider analysis'}), 400
 
         results = run_decideur_analysis(decideur_id, new_data_matrix_str, poids_str, seuil_p_str, seuil_q_str)
         return jsonify(results), 200
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': f'Erreur interne du serveur : {e}'}), 500
+        return jsonify({'error': f'Internal server error: {e}'}), 500
 
 @app.route('/api/negociateur', methods=['POST'])
 def api_negociateur():
-    """Point d'API pour l'analyse du Négociateur (entrée/sortie JSON)."""
+    """API endpoint for Negotiator Analysis (JSON input/output)."""
     try:
         data = request.get_json()
-        decision_weights = data.get('decision_weights') # Attend un dictionnaire : {"1": 0.1, "2": 0.1, ...}
+        decision_weights = data.get('decision_weights') # Expects a dict: {"1": 0.1, "2": 0.1, ...}
 
         if not decision_weights:
-            return jsonify({'error': 'Poids de décision manquants'}), 400
+            return jsonify({'error': 'Missing decision weights'}), 400
         
-        # Convertit les clés en entier si elles sont arrivées en tant que chaînes depuis JSON
+        # Convert keys to int if they arrived as strings from JSON
         decision_weights_int_keys = {int(k): v for k, v in decision_weights.items()}
 
         files = [os.path.join(DATA_DIR, f"decision_final_decideur_{i}.csv") for i in decision_weights_int_keys.keys()]
@@ -388,7 +394,7 @@ def api_negociateur():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': f'Erreur interne du serveur : {e}'}), 500
+        return jsonify({'error': f'Internal server error: {e}'}), 500
 
 
 if __name__ == '__main__':
