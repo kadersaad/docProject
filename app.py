@@ -56,21 +56,30 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# DECIDER PRESET PARAMETERS (extracted from decideur_logic.py for prefill management by app.py)
+# DECIDER PRESET PARAMETERS
 DECIDER_PRESET_PARAMS = {
-    1: {'poids': [4.96, 7.08, 17.31, 18.93, 18.93, 17.52, 15.27],
-        'seuil_p': [0.7, 0.7, 0.6, 100, 8, 1, 0.7],
-        'seuil_q': [0.35, 0.35, 0.3, 50, 4, 0.5, 0.35]},
-    2: {'poids': [7.51, 13.63, 13.63, 13.63, 17.2, 17.2, 17.2],
-        'seuil_p': [0.6, 0.6, 0, 110, 10, 0.6, 0.6],
-        'seuil_q': [0.3, 0.3, 0, 55, 5, 0.3, 0.3]},
-    3: {'poids': [6.15, 19.57, 13.79, 13.79, 13.79, 16.45, 16.45],
-        'seuil_p': [0.4, 0.4, 0.2, 60, 4, 0.6, 0.4],
-        'seuil_q': [0.2, 0.2, 0.1, 30, 2, 0.15, 0.2]},
-    4: {'poids': [17.38, 29.4, 6.16, 6.16, 6.16, 17.38, 17.38],
-        'seuil_p': [0.5, 0.6, 0.3, 90, 6, 0.5, 0.5],
-        'seuil_q': [0.25, 0.3, 0.15, 45, 3, 0.25, 0.25]},
+    1: {  # Environmental Activist
+        'poids':    [20, 5, 15, 5, 5, 5, 45],        # Strong emphasis on CLIMAT, NUISANCES, IMPACTS
+        'seuil_p':  [0.4, 0.4, 0.5, 100, 10, 1, 0.2],
+        'seuil_q':  [0.2, 0.2, 0.25, 50, 5, 0.5, 0.1]
+    },
+    2: {  # Urban Planner
+        'poids':    [5, 5, 5, 25, 25, 25, 10],       # Emphasis on GEOTECHNIQ, EQUIPEMENT, ACCESSIBIL
+        'seuil_p':  [0.6, 0.6, 0.4, 90, 5, 1, 0.5],
+        'seuil_q':  [0.3, 0.3, 0.2, 45, 2.5, 0.5, 0.25]
+    },
+    3: {  # Health & Safety Inspector
+        'poids':    [30, 25, 20, 5, 5, 5, 10],       # Focused on NUISANCES, BRUIT, IMPACTS
+        'seuil_p':  [0.3, 0.3, 0.3, 100, 10, 1, 0.6],
+        'seuil_q':  [0.15, 0.15, 0.15, 50, 5, 0.5, 0.3]
+    },
+    4: {  # Accessibility Analyst
+        'poids':    [5, 5, 5, 25, 20, 30, 10],       # Strong on ACCESSIBIL, GEOTECHNIQ, EQUIPEMENT
+        'seuil_p':  [0.6, 0.6, 0.6, 80, 10, 1, 0.5],
+        'seuil_q':  [0.3, 0.3, 0.3, 40, 5, 0.5, 0.25]
+    }
 }
+
 
 # Global PROMETHEE maximize flags (default)
 PROMETHEE_MINIMIZE_FLAGS = [True, True, True, True, True, True, False]
