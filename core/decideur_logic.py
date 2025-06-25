@@ -254,9 +254,9 @@ def run_decideur_analysis(decideur_id, new_data_matrix_str, poids_str, seuil_p_s
 
         def apply_decision(row, top_n_limit):
             if row['Rank'] <= top_n_limit:
-                return "Accepté" if row['SWOT_Status'] == "Positive SWOT" else "Refusé"
+                return "Accepted" if row['SWOT_Status'] == "Positive SWOT" else "Denied"
             else:
-                return "Refusé"
+                return "Denied"
 
         ranking_with_swot['Decision'] = ranking_with_swot.apply(lambda row: apply_decision(row, top_n), axis=1)
 
@@ -281,18 +281,18 @@ def run_decideur_analysis(decideur_id, new_data_matrix_str, poids_str, seuil_p_s
         x_line = np.linspace(-plot_limit, plot_limit, 100)
         plt.plot(x_line, -x_line, color='blue', linestyle='--', label='Neutral SWOT Line (Net Score = 0)')
 
-        colors_map = {'Accepté': 'green', 'Refusé': 'red'}
+        colors_map = {'Accepted': 'green', 'Denied': 'red'}
 
         if not final_result_for_display.empty:
-            accepted_points = final_result_for_display[final_result_for_display['Decision'] == 'Accepté']
-            refused_points = final_result_for_display[final_result_for_display['Decision'] == 'Refusé']
+            accepted_points = final_result_for_display[final_result_for_display['Decision'] == 'Accepted']
+            refused_points = final_result_for_display[final_result_for_display['Decision'] == 'Denied']
 
             if not accepted_points.empty:
                 plt.scatter(accepted_points['X_SWOT'], accepted_points['Y_SWOT'], 
-                            color=colors_map['Accepté'], s=80, alpha=0.7, label='Accepté')
+                            color=colors_map['Accepted'], s=80, alpha=0.7, label='Accepted')
             if not refused_points.empty:
                 plt.scatter(refused_points['X_SWOT'], refused_points['Y_SWOT'], 
-                            color=colors_map['Refusé'], s=80, alpha=0.7, label='Refusé')
+                            color=colors_map['Denied'], s=80, alpha=0.7, label='Denied')
 
             for i, row in final_result_for_display.iterrows():
                 plt.text(row['X_SWOT'] + 0.1, row['Y_SWOT'] + 0.1, str(int(row['ID_ZONE'])), fontsize=9, color='black')
