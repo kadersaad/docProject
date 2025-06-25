@@ -19,7 +19,15 @@ def run_kmeans_analysis(data_file_path, n_clusters=3, n_nearest_points=6):
     try:
         # === Load and prepare data ===
         df = pd.read_csv(data_file_path)
-        df.rename(columns={df.columns[0]: 'ID_ZONE'}, inplace=True)
+        # Remove any row where the first column is 'promethee_minimize' (case-insensitive)
+        first_col = df.columns[0]
+        df = df[~df[first_col].astype(str).str.lower().eq('promethee_minimize')]
+        df.rename(columns={first_col: 'ID_ZONE'}, inplace=True)
+        # Ensure all columns except 'ID_ZONE' are numeric
+        for col in df.columns:
+            if col != 'ID_ZONE':
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        df = df.dropna(subset=[col for col in df.columns if col != 'ID_ZONE'])
         X = df.drop(columns=['ID_ZONE'])
 
         # === Apply KMeans ===

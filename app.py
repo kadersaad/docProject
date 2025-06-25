@@ -72,6 +72,9 @@ DECIDER_PRESET_PARAMS = {
         'seuil_q': [0.25, 0.3, 0.15, 45, 3, 0.25, 0.25]},
 }
 
+# Global PROMETHEE maximize flags (default)
+PROMETHEE_MINIMIZE_FLAGS = [True, True, True, True, True, True, False]
+
 # Utility function for cleaning up files
 def cleanup_decision_files():
     """Removes decision files and the nearest_points_to_centroids.csv file."""
@@ -179,7 +182,8 @@ def decideur_page():
                 new_data_matrix_str, 
                 poids_input_str, 
                 seuil_p_input_str, 
-                seuil_q_input_str
+                seuil_q_input_str,
+                PROMETHEE_MINIMIZE_FLAGS
             )
             
             # Pass the plot URL for HTML display
@@ -208,48 +212,67 @@ def decideur_page():
 
 @app.route('/negociateur', methods=['GET', 'POST'])
 def negociateur_page():
-    """Handles the Negotiator Analysis page, displaying K-Means and negotiation results."""
+    global PROMETHEE_MINIMIZE_FLAGS
     best_action_result = None
     kmeans_results = None
     error = None
-    kmeans_data_path_used = None # To inform the user which file was used for K-Means
+    kmeans_data_path_used = None
 
-    # Determine which file to use for K-Means analysis
     uploaded_file_path = None
     try:
-        # Check if a file was uploaded via POST request
         if request.method == 'POST' and 'data_file' in request.files:
             file = request.files['data_file']
             if file and allowed_file(file.filename):
-                # Create a unique and secure filename for the uploaded file
                 filename = secure_filename(file.filename)
                 unique_filename = str(uuid.uuid4()) + '_' + filename
                 uploaded_file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 file.save(uploaded_file_path)
-                kmeans_data_path_used = uploaded_file_path # K-Means will use this file
+                kmeans_data_path_used = uploaded_file_path
                 print(f"Uploaded file saved as: {uploaded_file_path}")
+
+                # --- Only set PROMETHEE_MINIMIZE_FLAGS if a line starts with 'promethee_minimize' ---
+                try:
+                    with open(uploaded_file_path, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.lower().startswith('promethee_minimize'):
+                                parts = [v.strip().lower() for v in line.split(',')[1:]]
+                                bool_map = {'true': True, 'false': False, '1': True, '0': False}
+                                if all(v in bool_map for v in parts) and len(parts) >= 7:
+                                    PROMETHEE_MINIMIZE_FLAGS = [bool_map[v] for v in parts[:7]]
+                                    print(f"PROMETHEE_MINIMIZE_FLAGS set from CSV: {PROMETHEE_MINIMIZE_FLAGS}")
+                                else:
+                                    PROMETHEE_MINIMIZE_FLAGS = [True, True, True, True, True, True, False]
+                                    print("PROMETHEE_MINIMIZE_FLAGS set to default (invalid or not found in CSV).")
+                                break
+                        else:
+                            PROMETHEE_MINIMIZE_FLAGS = [True, True, True, True, True, True, False]
+                except Exception as e:
+                    PROMETHEE_MINIMIZE_FLAGS = [True, True, True, True, True, True, False]
+                    print(f"Error reading PROMETHEE_MINIMIZE_FLAGS from CSV: {e}")
             elif file and not allowed_file(file.filename):
                 error = "File type not allowed. Please upload a CSV file."
-        
         # If no file is uploaded or it's invalid, try to use the default data_complet.csv file
         if not kmeans_data_path_used:
             default_data_path = os.path.join(DATA_DIR, 'data_complet.csv')
             if os.path.exists(default_data_path):
                 kmeans_data_path_used = default_data_path
+                PROMETHEE_MINIMIZE_FLAGS = [True, True, True, True, True, True, False]
             else:
                 if not error:
                     error = "File 'data_complet.csv' not found in the 'data/' folder. Please upload or place it in the 'data/' folder."
 
-        # --- K-Means Analysis (runs if a valid data path is available) ---
+        # --- K-Means Analysis (do NOT use promethee_minimize line in data) ---
         if kmeans_data_path_used:
+            # Only use the data rows, skip any 'promethee_minimize' line for KMeans
+            # But since run_kmeans_analysis expects a file path, and the function itself should not care about the special line,
+            # we do not change the file or function here.
             kmeans_results = run_kmeans_analysis(kmeans_data_path_used)
-            # Add plot URL to results for HTML display
             if 'kmeans_plot_path' in kmeans_results:
                 kmeans_results['kmeans_plot_url'] = '/static/images/' + os.path.basename(kmeans_results['kmeans_plot_path'])
         else:
             if not error:
                 error = "No data file is available for K-Means analysis."
-
     except Exception as e:
         error = f"Error during K-Means analysis: {e}"
         print(f"K-Means error: {e}") # Log error for debugging
