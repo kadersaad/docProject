@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Best Selected Action</title>
+    <title>K-ProSWOT Best Selected Action</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -24,7 +24,7 @@
 
         {% if best_action %}
             <div class="results">
-                <h2>Best Action Details</h2>
+                <h2>K-ProSWOT Best Action Details</h2>
                 <p><strong>Zone ID:</strong> {{ best_action.ID_ZONE | default('N/A') }}</p>
                 <p><strong>Weighted Rank:</strong> {{ best_action.Weighted_Rank | round(2) | default('N/A') }}</p>
                 
